@@ -1,0 +1,59 @@
+function importJSON() {
+  var baseUrl = 'https://gennesisengenharia136709.rm.cloudtotvs.com.br:8051/api/framework/v1/consultaSQLServer/RealizaConsulta/RAST5.5/0/T'; // Substitua com a URL do seu JSON
+  var username = 'Adriano.Lazaro'; // Substitua com seu usuário
+  var password = 'Gennesis*1'; // Substitua com sua senha
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  sheet.clear(); // Limpa a planilha antes de importar os dados
+
+  var page = 1;
+  var pageSize = 100; // Ajuste o tamanho da página conforme necessário
+  var hasMoreData = true;
+
+  while (hasMoreData) {
+    var url = baseUrl + '?page=' + page + '&size=' + pageSize;
+    var headers = {
+      'Authorization': 'Basic ' + Utilities.base64Encode(username + ':' + password)
+    };
+
+    var options = {
+      'method': 'get',
+      'headers': headers
+    };
+
+    try {
+      var response = UrlFetchApp.fetch(url, options);
+      var json = JSON.parse(response.getContentText());
+
+      if (json.length > 0) {
+        // Adiciona cabeçalhos se for a primeira página
+        if (page === 1) {
+          var headers = Object.keys(json[0]);
+          sheet.appendRow(headers);
+        }
+
+        var rows = [];
+        json.forEach(function(item) {
+          var row = headers.map(function(header) {
+            return item[header];
+          });
+          rows.push(row);
+        });
+
+        // Adiciona todas as linhas de uma vez para melhorar a performance
+        if (rows.length > 0) {
+          sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, headers.length).setValues(rows);
+        }
+
+        page++;
+      } else {
+        hasMoreData = false;
+      }
+
+    } catch (e) {
+      Logger.log('Erro: ' + e.message);
+      hasMoreData = false;
+    }
+  }
+}
+
