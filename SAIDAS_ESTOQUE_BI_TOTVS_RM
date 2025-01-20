@@ -1,0 +1,68 @@
+SELECT DISTINCT TMOV.IDMOV                 AS 'IDMOV',
+                CASE TMOV.CODFILIAL
+                  WHEN '1' THEN 'DF'
+                  WHEN '5' THEN 'GO'
+                END                        AS 'FILIAL',
+                TMOV.CODTMV                AS 'CODTMV',
+                TMOV.SERIE,
+                TMOV.DATAEMISSAO           AS 'DATA',
+                GCCUSTO.NOME               AS 'CENTRO DE CUSTO',
+                TLOC.NOME                  AS 'LOCAL DE EST0QUE',
+                TPRODUTO.CODIGOPRD         AS 'CÓDIGO DO PRODUTO',
+                TPRODUTO.NOMEFANTASIA      AS 'NOME DO PRODUTO',
+                TTB1.DESCRICAO             AS 'DISCIPLINA',
+                TITMMOV.CODUND             AS 'UNIDADE',
+                TITMMOV.PRECOUNITARIO      AS 'CUSTO UNITÁRIO',
+                TITMMOV.QUANTIDADEORIGINAL AS 'QUANTIDADE',
+                TMOV.USUARIOCRIACAO        AS 'USUARIO',
+                CASE TMOV.STATUS
+                  WHEN 'N' THEN 'Normal'
+                  WHEN 'A' THEN 'Pendente'
+                  WHEN 'G' THEN 'Parc. Recebido'
+                  WHEN 'F' THEN 'Recebido'
+                  WHEN 'P' THEN 'Parc. Quitado'
+                  WHEN 'Q' THEN 'Quitado'
+                  WHEN 'C' THEN 'Cancelado'
+                  WHEN 'D' THEN 'Perda'
+                  WHEN 'I' THEN 'Inativo'
+                  WHEN 'R' THEN 'Não Processado'
+                  WHEN 'B' THEN 'Bloqueado'
+                  WHEN 'U' THEN 'Em Faturamento'
+                  WHEN 'O' THEN 'Aguardando análise'
+                  WHEN 'Y' THEN 'Não Iniciado'
+                  WHEN 'E' THEN 'Em Andamento'
+                  WHEN 'Z' THEN 'Terminado'
+                END                        AS 'BX - STATUS'
+FROM   TMOV
+       LEFT JOIN TTMV
+              ON TMOV.CODTMV = TTMV.CODTMV
+                 AND TMOV.CODCOLIGADA = TTMV.CODCOLIGADA
+       LEFT JOIN TMOVATEND
+              ON TMOV.IDMOV = TMOVATEND.IDMOV
+                 AND TMOV.CODCOLIGADA = TMOVATEND.CODCOLIGADA
+       LEFT JOIN HATENDIMENTOEXT
+              ON TMOVATEND.CODATENDIMENTO = HATENDIMENTOEXT.CODATENDIMENTO
+                 AND TMOVATEND.CODLOCAL = HATENDIMENTOEXT.CODLOCAL
+       LEFT JOIN GCCUSTO
+              ON TMOV.CODCCUSTO = GCCUSTO.CODCCUSTO
+                 AND TMOV.CODCOLIGADA = GCCUSTO.CODCOLIGADA
+       LEFT JOIN TLOC
+              ON TMOV.CODLOC = TLOC.CODLOC
+                 AND TMOV.CODCOLIGADA = TLOC.CODCOLIGADA
+                 AND TMOV.CODFILIAL = TLOC.CODFILIAL
+       LEFT JOIN TITMMOV
+              ON TMOV.CODCOLIGADA = TITMMOV.CODCOLIGADA
+                 AND TMOV.IDMOV = TITMMOV.IDMOV
+       LEFT JOIN TPRODUTO
+              ON TPRODUTO.IDPRD = TITMMOV.IDPRD
+       LEFT JOIN TPRODUTODEF (NOLOCK)
+              ON TPRODUTO.IDPRD = TPRODUTODEF.IDPRD
+       LEFT JOIN TTB1 (NOLOCK)
+              ON TTB1.CODTB1FAT = TPRODUTODEF.CODTB1FAT
+                 AND TPRODUTODEF.CODCOLIGADA = TTB1.CODCOLIGADA
+WHERE  TMOV.CODTMV IN ( '1.1.02', '1.2.02', '1.2.03', '4.1.02', '1.2.04' )
+       AND TMOV.CODCOLIGADA = '1'
+       AND TMOV.CODFILIAL IN ( '1', '5' )
+       AND TMOV.DATAEMISSAO > '2024-09-05'
+       AND TMOV.SERIE NOT IN ( 'AJS' )
+       AND TMOV.STATUS NOT IN ( 'C' ) 
