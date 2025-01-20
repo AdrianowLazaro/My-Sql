@@ -1,0 +1,55 @@
+SELECT DISTINCT OC.CODCOLIGADA             AS 'COLIGADA',
+                OC.CODFILIAL               AS 'FILIAL',
+                OC.IDMOV,
+                GCCUSTO.NOME               AS 'CENTRO DE CUSTO',
+                TPRODUTO.CODIGOPRD         AS 'COD PRODUTO',
+                TPRODUTO.NOMEFANTASIA      AS 'PRODUTO',
+                TPRODUTODEF.CODUNDCONTROLE AS 'UNIDADE',
+                TTB1.DESCRICAO             AS 'DISCIPLINA',
+                TITMMOV.PRECOUNITARIO      AS 'PREÇO UNITÁRIO',
+                OC.DATAEMISSAO,
+                OC.STATUS,
+                OCFLUIG.ETAPAAPROV         AS 'OC - ETAPA DE APROVAÇÃO',
+                CASE OC.STATUS
+                  WHEN 'N' THEN 'Normal'
+                  WHEN 'A' THEN 'Pendente'
+                  WHEN 'G' THEN 'Parc. Recebido'
+                  WHEN 'F' THEN 'Recebido'
+                  WHEN 'P' THEN 'Parc. Quitado'
+                  WHEN 'Q' THEN 'Quitado'
+                  WHEN 'C' THEN 'Cancelado'
+                  WHEN 'D' THEN 'Perda'
+                  WHEN 'I' THEN 'Inativo'
+                  WHEN 'R' THEN 'Não Processado'
+                  WHEN 'B' THEN 'Bloqueado'
+                  WHEN 'U' THEN 'Em Faturamento'
+                  WHEN 'O' THEN 'Aguardando análise'
+                  WHEN 'Y' THEN 'Não Iniciado'
+                  WHEN 'E' THEN 'Em Andamento'
+                  WHEN 'Z' THEN 'Terminado'
+                END                        AS 'STATUS'
+FROM   TMOV AS OC
+       INNER JOIN TITMMOV
+               ON OC.IDMOV = TITMMOV.IDMOV
+                  AND OC.CODCOLIGADA = TITMMOV.CODCOLIGADA
+       INNER JOIN TPRODUTO (NOLOCK)
+               ON TITMMOV.IDPRD = TPRODUTO.IDPRD
+       LEFT JOIN GCCUSTO
+              ON OC.CODCCUSTO = GCCUSTO.CODCCUSTO
+                 AND OC.CODCOLIGADA = GCCUSTO.CODCOLIGADA
+       INNER JOIN TPRODUTODEF (NOLOCK)
+               ON TPRODUTO.IDPRD = TPRODUTODEF.IDPRD
+       INNER JOIN TTB1 (NOLOCK)
+               ON TTB1.CODTB1FAT = TPRODUTODEF.CODTB1FAT
+                  AND TPRODUTODEF.CODCOLIGADA = TTB1.CODCOLIGADA
+       LEFT JOIN ZMDAPROVACAOFLUIG OCFLUIG
+              ON OC.IDMOV = OCFLUIG.IDMOV
+                 AND OC.CODCOLIGADA = OCFLUIG.CODCOLIGADA
+WHERE  OC.CODTMV IN ( '1.1.27', '1.1.26', '1.1.20' )
+       AND OC.DATAEMISSAO > '01-10-2024'
+       AND OC.STATUS NOT IN ('C') 
+       AND OC.CODCOLIGADA = '1'
+       AND OC.CODFILIAL IN ('1','5')
+       AND OCFLUIG.ETAPAAPROV IN ('Aprovado pela Diretoria', 'Aprovado pelo Gestor de Compras')
+
+
