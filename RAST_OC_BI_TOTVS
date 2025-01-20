@@ -1,0 +1,63 @@
+SELECT DISTINCT OC.CODCOLIGADA                        AS 'COLIGADA',
+                CASE OC.CODFILIAL
+                  WHEN '1' THEN 'DF'
+                  WHEN '2' THEN 'RS'
+                  WHEN '3' THEN 'RN'
+                  WHEN '4' THEN 'PB'
+                  WHEN '5' THEN 'GO'
+                END                                   AS 'FILIAL',
+                GCCUSTO.NOME                          AS 'CENTRO DE CUSTO',
+                OC.IDMOV                              AS 'ID MOV',
+                OC.NUMEROMOV                          AS 'N° MOV',
+                OC.CODTMV                             AS 'COD MOV',
+                TCPG.NOME                             AS 'MÉTODO PAGAMENTO',
+                (SELECT STRING_AGG(CONCAT(CONVERT(INT, TITMMOV.QUANTIDADEORIGINAL), ' ', TITMMOV.CODUND, ' ', TPRODUTO.NOMEFANTASIA, ' '), Char(13) + Char(10))
+                 FROM   TITMMOV
+                        JOIN TPRODUTO
+                          ON TPRODUTO.IDPRD = TITMMOV.IDPRD
+                 WHERE  TITMMOV.CODCOLIGADA = OC.CODCOLIGADA
+                        AND TITMMOV.IDMOV = OC.IDMOV) AS 'PRODUTO',
+                OC.VALORLIQUIDOORIG                   AS 'OC - VALOR LIQUIDO',
+                OC.DATAEMISSAO                        AS 'OC - DATA DE EMISSÃO',
+                ISNULL(OCHIST.HISTORICOCURTO, '---')  AS 'OC - HISTÓRICO',
+                FCFO.NOMEFANTASIA                     AS 'FORNECEDOR',
+                OC.RECCREATEDBY                       AS 'USUÁRIO',
+                CASE OC.STATUS
+                  WHEN 'N' THEN 'Normal'
+                  WHEN 'A' THEN 'Pendente'
+                  WHEN 'G' THEN 'Parc. Recebido'
+                  WHEN 'F' THEN 'Recebido'
+                  WHEN 'P' THEN 'Parc. Quitado'
+                  WHEN 'Q' THEN 'Quitado'
+                  WHEN 'C' THEN 'Cancelado'
+                  WHEN 'D' THEN 'Perda'
+                  WHEN 'I' THEN 'Inativo'
+                  WHEN 'R' THEN 'Não Processado'
+                  WHEN 'B' THEN 'Bloqueado'
+                  WHEN 'U' THEN 'Em Faturamento'
+                  WHEN 'O' THEN 'Aguardando análise'
+                  WHEN 'Y' THEN 'Não Iniciado'
+                  WHEN 'E' THEN 'Em Andamento'
+                  WHEN 'Z' THEN 'Terminado'
+                END                                   AS 'OC - STATUS'
+FROM   TMOV AS OC
+       INNER JOIN FCFO (NOLOCK)
+               ON OC.CODCFO = FCFO.CODCFO
+                  AND FCFO.CODCOLIGADA = OC.CODCOLCFO
+       INNER JOIN TITMMOV (NOLOCK)
+               ON OC.IDMOV = TITMMOV.IDMOV
+                  AND OC.CODCOLIGADA = TITMMOV.CODCOLIGADA
+       INNER JOIN TPRODUTO (NOLOCK)
+               ON TITMMOV.IDPRD = TPRODUTO.IDPRD
+       LEFT JOIN GCCUSTO (NOLOCK)
+              ON OC.CODCCUSTO = GCCUSTO.CODCCUSTO
+                 AND OC.CODCOLIGADA = GCCUSTO.CODCOLIGADA
+       LEFT JOIN TMOVHISTORICO AS OCHIST (NOLOCK)
+              ON OC.CODCOLIGADA = OCHIST.CODCOLIGADA
+                 AND OC.IDMOV = OCHIST.IDMOV
+       INNER JOIN TCPG (NOLOCK)
+               ON OC.CODCOLIGADA = TCPG.CODCOLIGADA
+                  AND OC.CODCPG = TCPG.CODCPG
+WHERE  OC.CODTMV IN ( '1.1.27', '1.1.26', '1.1.20' )
+       AND OC.CODCOLIGADA = '1'
+       AND OC.DATAEMISSAO > '2024-01-01' 
