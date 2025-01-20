@@ -1,0 +1,134 @@
+
+SELECT DISTINCT MPEDIDOMATEXTRA.CODCOLIGADA                                     AS 'COLIGADA',
+                MPEDIDOMATEXTRA.CODFILIAL                                       AS 'FILIAL',
+                MPEDIDOMATEXTRA.IDPRJ                                           AS 'ID_PROJETO',
+                GCCUSTO.NOME                                                    AS 'NOME_CENTRO_CUSTO',
+                MPEDIDOMATEXTRA.CODIGO                                          AS 'COD_PEDIDO',
+                ISNULL(Cast(MPEDIDOMATEXTRA.OBSERVACAO AS VARCHAR(220)), '---') AS 'N_OS',
+                ISNULL(RM.DATAEMISSAO, '1900-01-01')                            AS 'RM_DATA_EMISSAO',
+                ISNULL(Cast(RM.IDMOV AS VARCHAR (220)), 'NÃO GEROU RM')         AS 'RM -IDMOV',
+                CASE RM.STATUS
+                  WHEN 'N' THEN 'Normal'
+                  WHEN 'A' THEN 'Pendente'
+                  WHEN 'G' THEN 'Parc. Recebido'
+                  WHEN 'F' THEN 'Recebido'
+                  WHEN 'P' THEN 'Parc. Quitado'
+                  WHEN 'Q' THEN 'Quitado'
+                  WHEN 'C' THEN 'Cancelado'
+                  WHEN 'D' THEN 'Perda'
+                  WHEN 'I' THEN 'Inativo'
+                  WHEN 'R' THEN 'Não Processado'
+                  WHEN 'B' THEN 'Bloqueado'
+                  WHEN 'U' THEN 'Em Faturamento'
+                  WHEN 'O' THEN 'Aguardando análise'
+                  WHEN 'Y' THEN 'Não Iniciado'
+                  WHEN 'E' THEN 'Em Andamento'
+                  WHEN 'Z' THEN 'Terminado'
+                END                                                             AS 'RM - STATUS',
+                RMFLUIG.APROVADOR                                               AS 'RM - RESPONSÁVEL APROVAÇÃO',
+                RMFLUIG.RECMODIFIEDON                                           AS 'RM - DATA APROVAÇÃO',
+                RMFLUIG.ETAPAAPROV                                              AS 'RM - ETAPA DE APROVAÇÃO',
+                MITEMPEDIDOMATEXTRA.QTDEPEDIDO                                  AS 'QTDE PEDIDA',
+                TPRODUTODEF.CODUNDCOMPRA                                        AS 'CODUND',
+                TPRODUTO.NOMEFANTASIA                                           AS 'NOME INSUMO',
+                ISNULL(Cast(MITEMPEDIDOMATEXTRA.MOTIVO AS VARCHAR(220)), '---') AS 'ESPECIFICAÇÃO DO INSUMO',
+                ISNULL(SC.CODUSUARIO, '---')                                    AS 'SC - CRIADOR',
+                ISNULL(Cast(SC.IDMOV AS VARCHAR (220)), 'NÃO GEROU SC')         AS 'SC - ID MOV',
+                ISNULL(SC.DATAEMISSAO, '1900-01-01')                            AS 'SC - DATA DA EMISSÃO',
+                
+                ISNULL(OC.DATAEMISSAO, '1900-01-01')                            AS 'OC - DATA DE EMISSÃO',
+                ISNULL(Cast(OC.IDMOV AS VARCHAR (220)), 'NÃO GEROU OC')         AS 'OC - ID MOV',
+                ISNULL(ITEMOC.QUANTIDADETOTAL, '0')                             AS 'OC - QTDE DO ITEM',
+                ISNULL(OCFLUIG.IDFLUIG, '0')                                    AS 'OC - ID FLUIG',
+                ISNULL(ITEMOC.QUANTIDADETOTAL * ITEMOC.PRECOUNITARIO, '0')      AS 'OC - VALOR UNITÁRIO',
+                ISNULL(OCFLUIG.ETAPAAPROV, '---')                               AS 'OC - ETAPA DE APROVAÇÃO',
+                ISNULL(OCFLUIG.APROVADOR, '---')                                AS 'OC - RESPONSÁVEL APROVAÇÃO',
+                ISNULL(OCFLUIG.RECMODIFIEDON, '1900-01-01')                     AS 'OC - DATA DE APROVAÇÃO',
+                ISNULL(Cast(OCHIST.HISTORICOCURTO AS VARCHAR(220)), '---')      AS 'OC - HISTORICO',
+                ISNULL(OCFCFO.NOME, '---')                                      AS 'OC - FORNECEDOR'
+FROM   MPEDIDOMATEXTRA (NOLOCK)
+       INNER JOIN MPRJ (NOLOCK)
+                  INNER JOIN GCCUSTO (NOLOCK)
+                          ON GCCUSTO.CODCOLIGADA = MPRJ.CODCOLIGADA
+                             AND GCCUSTO.CODCCUSTO = MPRJ.CODCCUSTO
+               ON MPEDIDOMATEXTRA.IDPRJ = MPRJ.IDPRJ
+                  AND MPEDIDOMATEXTRA.CODCOLIGADA = MPRJ.CODCOLIGADA
+       INNER JOIN MITEMPEDIDOMATEXTRA (NOLOCK)
+                  INNER JOIN TPRODUTO (NOLOCK)
+                             INNER JOIN TPRODUTODEF (NOLOCK)
+                                        INNER JOIN TTBORCAMENTO (NOLOCK)
+                                                ON TTBORCAMENTO.CODTBORCAMENTO = TPRODUTODEF.CODTBORCAMENTO
+                                     ON TPRODUTODEF.IDPRD = TPRODUTO.IDPRD
+                          ON TPRODUTO.IDPRD = MITEMPEDIDOMATEXTRA.IDPRD
+               ON MITEMPEDIDOMATEXTRA.CODCOLIGADA = MPEDIDOMATEXTRA.CODCOLIGADA
+                  AND MITEMPEDIDOMATEXTRA.IDPRJ = MPEDIDOMATEXTRA.IDPRJ
+                  AND MITEMPEDIDOMATEXTRA.IDPEDIDOEXTRA = MPEDIDOMATEXTRA.IDPEDIDOEXTRA
+       LEFT JOIN TMOV RM (NOLOCK)
+                 JOIN TITMMOV ITEMRM (NOLOCK)
+                   ON ITEMRM.IDMOV = RM.IDMOV
+                      AND ITEMRM.CODCOLIGADA = RM.CODCOLIGADA
+              ON RM.IDMOV = MITEMPEDIDOMATEXTRA.IDMOV
+                 AND RM.CODCOLIGADA = MITEMPEDIDOMATEXTRA.CODCOLIGADA
+                 AND ITEMRM.NSEQITMMOV = MITEMPEDIDOMATEXTRA.NSEQITMMOV
+       LEFT JOIN TMOVCOMPL (NOLOCK)
+              ON RM.IDMOV = TMOVCOMPL.IDMOV
+                 AND RM.CODCOLIGADA = TMOVCOMPL.CODCOLIGADA
+       LEFT JOIN TITMMOVRELAC RELACITM (NOLOCK)
+              ON RELACITM.IDMOVORIGEM = ITEMRM.IDMOV
+                 AND RELACITM.CODCOLORIGEM = ITEMRM.CODCOLIGADA
+                 AND RELACITM.NSEQITMMOVORIGEM = ITEMRM.NSEQITMMOV
+       LEFT JOIN TITMMOV ITEMBX (NOLOCK)
+                 JOIN TMOV BX (NOLOCK)
+                   ON ITEMBX.IDMOV = BX.IDMOV
+                      AND ITEMBX.CODCOLIGADA = BX.CODCOLIGADA
+                      AND BX.CODTMV IN ( '1.2.03', '1.2.04' )
+              ON RELACITM.IDMOVDESTINO = ITEMBX.IDMOV
+                 AND RELACITM.CODCOLDESTINO = ITEMBX.CODCOLIGADA
+                 AND RELACITM.NSEQITMMOVDESTINO = ITEMBX.NSEQITMMOV
+       LEFT JOIN TITMMOV ITEMSC (NOLOCK) /* ITEM DA SOLICITACAO DE COMPRA */
+                 JOIN TMOV SC (NOLOCK)
+                   ON ITEMSC.IDMOV = SC.IDMOV
+                      AND ITEMSC.CODCOLIGADA = SC.CODCOLIGADA
+                      AND SC.CODTMV NOT IN ( '1.2.03', '1.2.04' )
+              ON RELACITM.IDMOVDESTINO = ITEMSC.IDMOV
+                 AND RELACITM.CODCOLDESTINO = ITEMSC.CODCOLIGADA
+                 AND RELACITM.NSEQITMMOVDESTINO = ITEMSC.NSEQITMMOV
+       LEFT JOIN TITMMOVRELAC RELACOC (NOLOCK)
+              ON RELACOC.IDMOVORIGEM = ITEMSC.IDMOV
+                 AND RELACOC.CODCOLORIGEM = ITEMSC.CODCOLIGADA
+                 AND RELACOC.NSEQITMMOVORIGEM = ITEMSC.NSEQITMMOV
+       LEFT JOIN TITMMOV ITEMOC (NOLOCK) /* ITEM DA ORDEM DE COMPRA */
+                 JOIN TMOV OC (NOLOCK)
+                      JOIN TMOVHISTORICO OCHIST (NOLOCK)
+                        ON OC.IDMOV = OCHIST.IDMOV
+                           AND OC.CODCOLIGADA = OCHIST.CODCOLIGADA
+                      JOIN TLOC OCLOC (NOLOCK)
+                        ON OC.CODLOC = OCLOC.CODLOC
+                           AND OC.CODCOLIGADA = OCLOC.CODCOLIGADA
+                      JOIN FCFO OCFCFO (NOLOCK)
+                        ON OC.CODCFO = OCFCFO.CODCFO
+                           AND OC.CODCOLCFO = OCFCFO.CODCOLIGADA
+                   ON OC.IDMOV = ITEMOC.IDMOV
+                      AND OC.CODCOLIGADA = ITEMOC.CODCOLIGADA
+              ON RELACOC.IDMOVDESTINO = ITEMOC.IDMOV
+                 AND RELACOC.CODCOLDESTINO = ITEMOC.CODCOLIGADA
+                 AND RELACOC.NSEQITMMOVDESTINO = ITEMOC.NSEQITMMOV
+       LEFT JOIN TMOVRELAC RELACNF (NOLOCK)
+              ON RELACNF.IDMOVORIGEM = OC.IDMOV
+                 AND RELACNF.CODCOLORIGEM = OC.CODCOLIGADA
+       LEFT JOIN TMOV NF (NOLOCK)
+              ON NF.IDMOV = RELACNF.IDMOVDESTINO
+                 AND NF.CODCOLIGADA = RELACNF.CODCOLDESTINO
+       LEFT JOIN ZMDAPROVACAOFLUIG
+              ON OC.IDMOV = ZMDAPROVACAOFLUIG.IDMOV
+                 AND OC.CODCOLIGADA = ZMDAPROVACAOFLUIG.CODCOLIGADA
+       LEFT JOIN ZMDAPROVACAOFLUIG RMFLUIG
+              ON RM.IDMOV = RMFLUIG.IDMOV
+                 AND RM.CODCOLIGADA = RMFLUIG.CODCOLIGADA
+       LEFT JOIN ZMDAPROVACAOFLUIG OCFLUIG
+              ON OC.IDMOV = OCFLUIG.IDMOV
+                 AND OC.CODCOLIGADA = OCFLUIG.CODCOLIGADA
+WHERE  MPEDIDOMATEXTRA.DATA > '2024-10-01'
+       AND GCCUSTO.CODCCUSTO = '02.01.01.01.016'
+
+
